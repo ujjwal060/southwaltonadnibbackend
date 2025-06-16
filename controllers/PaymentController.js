@@ -56,10 +56,26 @@ const getAllPays = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
+      const enrichedPayments = await Promise.all(
+      payments.map(async (payment) => {
+        let userName = null;
+
+        if (payment.userId) {
+          const user = await User.findById(payment.userId).select("fullName");
+          userName = user?.fullName || null;
+        }
+
+        return {
+          ...payment.toObject(),
+          userName,
+        };
+      })
+    );
+
     const totalDocuments = await Payment.countDocuments(query);
 
     res.status(200).json({
-      data: payments,
+      data: enrichedPayments,
       totalDocuments,
       totalPages: Math.ceil(totalDocuments / limit),
       currentPage: parseInt(page),
