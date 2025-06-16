@@ -8,6 +8,7 @@ const Reserve = require('../models/reserveModel');
 const Vehicle = require('../models/vehicleModel');
 const NewVehicle = require("../models/newVehicleModel");
 const User=require("../models/userModel");
+const booking=require("../models/checkoutModel");
 
 
 // Handler function to create and save payment info
@@ -57,22 +58,51 @@ const getAllPays = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
-      const enrichedPayments = await Promise.all(
+    //   const enrichedPayments = await Promise.all(
+    //   payments.map(async (payment) => {
+    //     let userName = null;
+    //     let invoiceId=null;
+
+    //     if (payment.userId) {
+    //       const user = await User.findById(payment.userId).select("fullName");
+    //       userName = user?.fullName || null;
+    //     }
+    //      if (payment.bookingId) {
+    //       const bookingData = await booking.findById(payment.bookingId).select("invoiceId");
+    //       invoiceId = bookingData?.invoiceId || null;
+    //     }
+
+    //     return {
+    //       ...payment.toObject(),
+    //       userName,
+    //       invoiceId
+    //     };
+    //   })
+    // );
+const enrichedPayments = await Promise.all(
       payments.map(async (payment) => {
         let userName = null;
+        let invoiceId = null;
 
+        // Get user name
         if (payment.userId) {
           const user = await User.findById(payment.userId).select("fullName");
           userName = user?.fullName || null;
         }
 
+        // Get invoiceId from Booking
+        if (payment.bookingId) {
+          const bookingData = await booking.findById(payment.bookingId).select("invoiceId");
+          invoiceId = bookingData || null;
+        }
+
         return {
           ...payment.toObject(),
           userName,
+          invoiceId,
         };
       })
     );
-
     const totalDocuments = await Payment.countDocuments(query);
 
     res.status(200).json({
