@@ -225,40 +225,14 @@ exports.getVehicleById = async (req, res, next) => {
 
 // csv pricing
 
-// Helper function to parse a CSV file
 const parseCSV = async (csvUrl) => {
   const data = [];
   const response = await axios.get(csvUrl, { responseType: 'stream' });
-
-  return new Promise((resolve, reject) => {
-    let rowCounter = 0; // To track row number
-    let headers = []; // To store the actual headers
-
+ return new Promise((resolve, reject) => {
     response.data
-      .pipe(csvParser({ headers: false })) // Parse without assuming headers initially
+      .pipe(csvParser())
       .on('data', (row) => {
-        rowCounter++;
-
-        if (rowCounter === 1) {
-          // Skip the first row (Sheet Title)
-          return;
-        } else if (rowCounter === 2) {
-          // Row 2 contains the actual headers
-          headers = Object.values(row).map((header) => header.trim());
-          return;
-        }
-
-        // From row 3 onwards, process data using the extracted headers
-        const parsedRow = {};
-        Object.keys(row).forEach((key, index) => {
-          const header = headers[index];
-          const value = row[key]?.trim();
-          if (header) {
-            parsedRow[header] = value;
-          }
-        });
-
-        data.push(parsedRow);
+        data.push(row);
       })
       .on('end', () => {
         resolve(data);
@@ -269,63 +243,46 @@ const parseCSV = async (csvUrl) => {
   });
 };
 
-// Function to calculate total price from a pricing file
 const calculateTotalVehiclePrice = async (csvUrl, startDate, endDate) => {
   const csvData = await parseCSV(csvUrl);
-
-  // Convert CSV data into a usable format (pricing map)
   const pricingMap = {};
   csvData.forEach((row) => {
-    const date = row['Dates Below']?.trim(); // Extract the day of the month
-    Object.keys(row).forEach((key) => {
-      if (key !== 'Dates Below') {
-        const month = key.trim(); // Month vname (e.g., "January")
-        const price = parseFloat(row[key]?.replace('$', '').trim() || 0); // Remove $ symbol and parse
+    const fullDate = row['Date']?.trim(); // Example: "1/2/2025"
+    const price = parseFloat(row['One Day Rental Price']?.trim());
 
-        if (!pricingMap[month]) {
-          pricingMap[month] = {};
-        }
-        pricingMap[month][date] = price; // Map month and day to price
-      }
-    });
+    if (fullDate && !isNaN(price)) {
+      pricingMap[fullDate] = price;
+    }
   });
 
-  // Calculate total price for the given date range
   let currentDate = new Date(startDate);
   let totalPrice = 0;
 
   while (currentDate <= endDate) {
-    const month = currentDate.toLocaleString('default', { month: 'long' });
-    const day = currentDate.getDate().toString();
-
-    if (pricingMap[month] && pricingMap[month][day]) {
-      totalPrice += pricingMap[month][day];
+    const formattedDate = `${currentDate.getMonth() + 1}/${currentDate.getDate()}/${currentDate.getFullYear()}`;
+    
+    if (pricingMap[formattedDate]) {
+      totalPrice += pricingMap[formattedDate];
     }
 
-    // Move to the next day
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
   return totalPrice;
 };
-
-// Main API function to get pricing for all vehicles
 exports.getvehiclePricing = async (req, res) => {
   try {
     const { days, pickdate, dropdate } = req.query;
 
-    // Validate input
     if (!days || !pickdate || !dropdate) {
       return res.status(400).json({
         error: 'Please provide days, pickdate, and dropdate.',
       });
     }
 
-    // Convert date inputs into proper Date objects
     const startDate = new Date(pickdate);
     const endDate = new Date(dropdate);
 
-    // Check if the number of days matches the date range
     const dayDifference = Math.ceil(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -336,19 +293,16 @@ exports.getvehiclePricing = async (req, res) => {
       });
     }
 
-    // Fetch all vehicles from the database
     const vehicles = await NewVehicle.find();
 
     if (vehicles.length === 0) {
       return res.status(404).json({ error: 'No vehicles found.' });
     }
 
-    // Process pricing for each vehicle
     const results = [];
     for (const vehicle of vehicles) {
       let csvUrl;
 
-      // Determine the appropriate pricing file based on days
       if (days == 1) {
         csvUrl = vehicle.dailyPricingFile;
       } else if (days >= 2 && days <= 4) {
@@ -361,7 +315,6 @@ exports.getvehiclePricing = async (req, res) => {
         csvUrl = vehicle.twentyEightPlusPricingFile;
       }
 
-      // Skip vehicles without the appropriate pricing file
       if (!csvUrl) {
         results.push({
           vehicleId: vehicle._id,
@@ -376,10 +329,8 @@ exports.getvehiclePricing = async (req, res) => {
         continue;
       }
 
-      // Calculate total price
       const totalPrice = await calculateTotalVehiclePrice(csvUrl, startDate, endDate);
 
-      // Add the vehicle's details and pricing to the result
       results.push({
         vehicleId: vehicle._id,
         vname: vehicle.vname,
@@ -392,15 +343,12 @@ exports.getvehiclePricing = async (req, res) => {
       });
     }
 
-    // Return the pricing details for all vehicles
     res.status(200).json({ message: 'All Vehicle Pricing',results});
   } catch (err) {
-    console.error(err); // Debug log the error
     res.status(500).json({ error: err.message });
   }
 };
 
-// single vehicle with pricing
 
 exports.getVehicleWithPriceById = async (req, res) => {
   try {
