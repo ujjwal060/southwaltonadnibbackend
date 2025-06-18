@@ -8,6 +8,7 @@ const nodemailer = require('nodemailer');
 const User = require('../models/userModel');
 const Vehicle = require("../models/vehicleModel");
 const NewVehicle = require("../models/newVehicleModel");
+const bookingModdel=require("../models/checkoutModel");
 
 // Create a new reservation
 const createReservation = async (req, res) => {
@@ -65,7 +66,7 @@ const getAllReservations = async (req, res) => {
             .select('vname tagNumber passenger image model');
         }
         const payment = await Payment.findOne({ reservation: reservation._id }).select('userId');
-
+        const bookingdata = await bookingModdel.findOne({ reservationId: reservation._id }).select('invoiceNumber');
         let userName = null;
         if (payment?.userId) {
           const user = await User.findById(payment.userId).select('fullName');
@@ -76,6 +77,7 @@ const getAllReservations = async (req, res) => {
           ...reservation.toObject(),
           vehicleDetails,
           userName,
+          invoiceNumber:bookingdata.invoiceNumber || 'N/A'
         };
       })
     );
