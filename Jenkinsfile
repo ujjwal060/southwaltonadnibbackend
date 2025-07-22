@@ -87,16 +87,16 @@ pipeline {
         }
     }
 
-    // post {
-    //     always {
-    //         script {
-    //             echo "📩 Sending deployment email..."
-    //             emailext (
-    //                 to: 'kartikey.tiwari@aayaninfotech.com',
-    //                 subject: "Deployment Pipeline - ${currentBuild.fullDisplayName}",
-    //                 body: "Job '${env.JOB_NAME} [#${env.BUILD_NUMBER}]' completed with status: ${currentBuild.currentResult}"
-    //             )
-    //         }
-    //     }
-    // }
+    post {
+        always {
+            script {
+                echo "📩 Sending deployment email..."
+                emailext (
+                    to: 'kartikey.tiwari@aayaninfotech.com',
+                    subject: "Deployment Pipeline - ${currentBuild.fullDisplayName}",
+                    body: "Job '${env.JOB_NAME} [#${env.BUILD_NUMBER}]' completed with status: ${currentBuild.currentResult}"
+                )
+            }
+        }
+    }
 }
