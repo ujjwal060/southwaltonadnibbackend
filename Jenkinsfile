@@ -87,6 +87,28 @@ pipeline {
         }
     }
 
+            stage('Run New Docker Container') {
+            steps {
+                sh '''
+                    echo "🔐 Fetching secrets from AWS Secrets Manager..."
+                    SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id south-voltana --query SecretString --output text)
+
+                    AWS_ACCESS_KEY_ID=$(echo $SECRET_JSON | jq -r '.AWS_ACCESS_KEY_ID')
+                    AWS_SECRET_ACCESS_KEY=$(echo $SECRET_JSON | jq -r '.AWS_SECRET_ACCESS_KEY')
+
+                    echo "🚀 Running container with secrets injected..."
+                    docker run -d \
+                        --name $CONTAINER_NAME \
+                        -p $HOST_PORT:$CONTAINER_PORT \
+                        -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+                        -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+                        $IMAGE_NAME:$IMAGE_TAG
+                '''
+            }
+        }
+    }
+
+
     post {
         always {
             script {
