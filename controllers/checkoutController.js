@@ -225,7 +225,7 @@ const getAllBookingForCalendar = async (req, res) => {
               drop: reservation.drop,
               pickdate: reservation.pickdate,
               dropdate: reservation.dropdate,
-              vehicle: vehicle ? { id: vehicle._id, vname: vehicle.vname,passenger: vehicle.passenger,tagNumber: vehicle.tagNumber } : null,
+              vehicle: vehicle ? { id: vehicle._id, vname: vehicle.vname,passenger: vehicle.passenger,tagNumber: vehicle.tagNumber, model:vehicle.model } : null,
             },
             bookingDetails: {
               bookingId: booking._id,
