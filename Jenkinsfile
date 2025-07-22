@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "docker.io/kartikeytiwari/south-walton-admin-backend"
+        IMAGE_NAME = "docker.io/kartikeytiwari/aouth-walton-admin-backend"
         IMAGE_TAG = "${BUILD_NUMBER}"
         CONTAINER_PORT = "8132"
         HOST_PORT = "8132"
