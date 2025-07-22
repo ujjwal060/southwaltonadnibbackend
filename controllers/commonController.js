@@ -1,6 +1,26 @@
 const multer = require('multer');
 const { S3 } = require('@aws-sdk/client-s3');
 const path = require('path');
+const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
+const client = new SecretsManagerClient({ region: 'us-east-1' });
+
+const getAwsSecrets = async () => {
+  try {
+    const command = new GetSecretValueCommand({
+      SecretId: 'your-secret-name',
+    });
+
+    const response = await client.send(command);
+    if (response.SecretString) {
+      return JSON.parse(response.SecretString);
+    } else {
+      throw new Error('Secret string is empty');
+    }
+  } catch (error) {
+    console.error('Error fetching secrets:', error);
+    throw error;
+  }
+};
 
 const s3 = new S3({
   credentials: {
