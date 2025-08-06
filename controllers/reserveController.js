@@ -65,15 +65,16 @@ const getAllReservations = async (req, res) => {
             _id: reservation.vehicleId,
           }).select("vname tagNumber passenger image model");
         }
+
         const payment = await Payment.findOne({
-          reservation: reservation._id,
-        }).select("userId");
-       
-        let userName = null;
-        if (payment?.userId) {
-          const user = await User.findById(payment.userId).select("fullName");
-          userName = user?.fullName || null;
-        }
+          reservationId: reservation._id.toString(),
+        }).populate({
+          path: "userId",
+          select: "fullName",
+          model: "User",
+        });
+
+        let userName = payment?.userId?.fullName || null;
 
         return {
           ...reservation.toObject(),
