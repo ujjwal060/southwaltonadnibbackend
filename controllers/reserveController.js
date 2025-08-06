@@ -68,9 +68,7 @@ const getAllReservations = async (req, res) => {
         const payment = await Payment.findOne({
           reservation: reservation._id,
         }).select("userId");
-        // const bookingdata = await bookingModdel
-        //   .findOne({ reservationId: reservation._id })
-        //   .select("invoiceNumber");
+       
         let userName = null;
         if (payment?.userId) {
           const user = await User.findById(payment.userId).select("fullName");
@@ -81,7 +79,6 @@ const getAllReservations = async (req, res) => {
           ...reservation.toObject(),
           vehicleDetails,
           userName,
-          // invoiceNumber: bookingdata.invoiceNumber || "N/A",
         };
       })
     );
