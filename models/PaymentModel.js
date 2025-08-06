@@ -29,6 +29,10 @@ const paymentSchema = mongoose.Schema(
             type: String,
             require: false,
         },
+         reservationId:{
+            type:mongoose.Schema.Types.ObjectId,
+            required:true
+        },
         fromAdmin: {
             type: Boolean,
             required: false,

@@ -87,8 +87,7 @@ const getAllBookforms = async (req, res) => {
   try {
     const { search = '', page = 1, limit = 10 } = req.query;
 
-    // Fetch payments where 'fromAdmin' is false
-    const payments = await Payment.find({ fromAdmin: false }).sort({ createdAt: -1 });
+    const payments = await Payment.find({ fromAdmin: false,paymentType:"Booking" }).sort({ createdAt: -1 });
 
     if (!payments || payments.length === 0) {
       return res.status(404).json({ message: 'No payments found' });
@@ -97,8 +96,8 @@ const getAllBookforms = async (req, res) => {
     const allBookforms = await Promise.all(
       payments.map(async (payment) => {
         try {
-          // Fetch Reservation Details
-          const reservation = await Reserve.findById(payment.reservation);
+          console.log(payment.reservationId)
+          const reservation = await Reserve.findById(payment.reservationId);
           if (!reservation) {
             console.log(`Reservation not found for Payment ID: ${payment._id}`);
             return null;
