@@ -90,16 +90,9 @@ const enrichedPayments = await Promise.all(
           userName = user?.fullName || null;
         }
 
-        // Get invoiceId from Booking
-        if (payment.bookingId) {
-          const bookingData = await booking.findById(payment.bookingId).select("invoiceId");
-          invoiceId = bookingData || null;
-        }
-
         return {
           ...payment.toObject(),
           userName,
-          invoiceId,
         };
       })
     );
