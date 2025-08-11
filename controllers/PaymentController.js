@@ -82,7 +82,6 @@ const getAllPays = async (req, res) => {
 const enrichedPayments = await Promise.all(
       payments.map(async (payment) => {
         let userName = null;
-        let invoiceId = null;
 
         // Get user name
         if (payment.userId) {
