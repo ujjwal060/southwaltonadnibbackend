@@ -417,7 +417,7 @@ const calculateTotalVehiclePrice = async (
 
 exports.getvehiclePricing = async (req, res) => {
   try {
-    const { days, pickdate, dropdate } = req.query;
+    const { days, pickdate, dropdate, model, passenger } = req.query;
 
     if (!days || !pickdate || !dropdate) {
       return res.status(400).json({
@@ -439,7 +439,10 @@ exports.getvehiclePricing = async (req, res) => {
       });
     }
 
-    const vehicles = await NewVehicle.find();
+    const vehicles = await NewVehicle.find({
+      model,
+      passenger
+    });
 
     if (vehicles.length === 0) {
       return res.status(404).json({ error: "No vehicles found." });
