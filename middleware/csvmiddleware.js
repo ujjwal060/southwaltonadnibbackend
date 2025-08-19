@@ -76,6 +76,11 @@ const uploadFilesToS3 = async (req, res, next) => {
             ContentType: file.mimetype,
           };
 
+          if (file.mimetype === 'text/csv') {
+            params.ContentType = 'text/plain';
+            params.ContentDisposition = 'inline';
+          }
+
           await s3.putObject(params);
           fileLocations[fileType] = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
         }

@@ -243,15 +243,124 @@ const parseCSV = async (csvUrl) => {
   });
 };
 
-const calculateTotalVehiclePrice = async (csvUrl, startDate, endDate) => {
+// const calculateTotalVehiclePrice = async (csvUrl, startDate, endDate) => {
+//   const csvData = await parseCSV(csvUrl);
+//   const pricingMap = {};
+//   csvData.forEach((row) => {
+//     const fullDate = row['Date']?.trim(); // Example: "1/2/2025"
+//     const price = parseFloat(row['One Day Rental Price']?.trim());
+
+//     if (fullDate && !isNaN(price)) {
+//       pricingMap[fullDate] = price;
+//     }
+//   });
+
+//   let currentDate = new Date(startDate);
+//   let totalPrice = 0;
+
+//   while (currentDate <= endDate) {
+//     const formattedDate = `${currentDate.getMonth() + 1}/${currentDate.getDate()}/${currentDate.getFullYear()}`;
+    
+//     if (pricingMap[formattedDate]) {
+//       totalPrice += pricingMap[formattedDate];
+//     }
+
+//     currentDate.setDate(currentDate.getDate() + 1);
+//   }
+
+//   return totalPrice;
+// };
+// exports.getvehiclePricing = async (req, res) => {
+//   try {
+//     const { days, pickdate, dropdate } = req.query;
+
+//     if (!days || !pickdate || !dropdate) {
+//       return res.status(400).json({
+//         error: 'Please provide days, pickdate, and dropdate.',
+//       });
+//     }
+
+//     const startDate = new Date(pickdate);
+//     const endDate = new Date(dropdate);
+
+//     const dayDifference = Math.ceil(
+//       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+//     );
+//     if (dayDifference + 1 !== parseInt(days, 10)) {
+//       return res.status(400).json({
+//         error:
+//           'Number of days does not match the range between pickdate and dropdate.',
+//       });
+//     }
+
+//     const vehicles = await NewVehicle.find();
+
+//     if (vehicles.length === 0) {
+//       return res.status(404).json({ error: 'No vehicles found.' });
+//     }
+
+//     const results = [];
+//     for (const vehicle of vehicles) {
+//       let csvUrl;
+
+//       if (days == 1) {
+//         csvUrl = vehicle.dailyPricingFile;
+//       } else if (days >= 2 && days <= 4) {
+//         csvUrl = vehicle.twoToFourDaysPricingFile;
+//       } else if (days >= 5 && days <= 7) {
+//         csvUrl = vehicle.fiveToSevenDaysPricingFile;
+//       } else if (days >= 8 && days <= 27) {
+//         csvUrl = vehicle.eightToTwentySevenDaysPricingFile;
+//       } else if (days >= 28) {
+//         csvUrl = vehicle.twentyEightPlusPricingFile;
+//       }
+
+//       if (!csvUrl) {
+//         results.push({
+//           vehicleId: vehicle._id,
+//           vname: vehicle.vname,
+//           image: vehicle.image,
+//           model: vehicle.model,
+//           passenger: vehicle.passenger,
+//           tagNumber: vehicle.tagNumber,
+//           isAvailable: vehicle.isAvailable,
+//           error: 'Pricing file not found for the specified number of days.',
+//         });
+//         continue;
+//       }
+
+//       const totalPrice = await calculateTotalVehiclePrice(csvUrl, startDate, endDate);
+
+//       results.push({
+//         vehicleId: vehicle._id,
+//         vname: vehicle.vname,
+//         image: vehicle.image,
+//         model: vehicle.model,
+//         passenger: vehicle.passenger,
+//         tagNumber: vehicle.tagNumber,
+//         isAvailable: vehicle.isAvailable,
+//         totalPrice: `$${totalPrice.toFixed(2)}`,
+//       });
+//     }
+
+//     res.status(200).json({ message: 'All Vehicle Pricing',results});
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+
+const calculateTotalVehiclePrice = async (csvUrl, startDate, endDate, vehicleType) => {
   const csvData = await parseCSV(csvUrl);
   const pricingMap = {};
+
   csvData.forEach((row) => {
-    const fullDate = row['Date']?.trim(); // Example: "1/2/2025"
-    const price = parseFloat(row['One Day Rental Price']?.trim());
+    const fullDate = row['Date']?.trim();
+    const price = parseFloat(row[vehicleType]?.trim());
 
     if (fullDate && !isNaN(price)) {
-      pricingMap[fullDate] = price;
+      const formattedDate = new Date(fullDate).toISOString().split("T")[0];
+      pricingMap[formattedDate] = price;
     }
   });
 
@@ -259,8 +368,8 @@ const calculateTotalVehiclePrice = async (csvUrl, startDate, endDate) => {
   let totalPrice = 0;
 
   while (currentDate <= endDate) {
-    const formattedDate = `${currentDate.getMonth() + 1}/${currentDate.getDate()}/${currentDate.getFullYear()}`;
-    
+    const formattedDate = currentDate.toISOString().split("T")[0];
+
     if (pricingMap[formattedDate]) {
       totalPrice += pricingMap[formattedDate];
     }
@@ -270,6 +379,8 @@ const calculateTotalVehiclePrice = async (csvUrl, startDate, endDate) => {
 
   return totalPrice;
 };
+
+
 exports.getvehiclePricing = async (req, res) => {
   try {
     const { days, pickdate, dropdate } = req.query;
@@ -286,10 +397,10 @@ exports.getvehiclePricing = async (req, res) => {
     const dayDifference = Math.ceil(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
     );
+
     if (dayDifference + 1 !== parseInt(days, 10)) {
       return res.status(400).json({
-        error:
-          'Number of days does not match the range between pickdate and dropdate.',
+        error: 'Number of days does not match the range between pickdate and dropdate.',
       });
     }
 
@@ -305,15 +416,16 @@ exports.getvehiclePricing = async (req, res) => {
 
       if (days == 1) {
         csvUrl = vehicle.dailyPricingFile;
-      } else if (days >= 2 && days <= 4) {
+      } else if (days >= 2 && days <= 5) {
         csvUrl = vehicle.twoToFourDaysPricingFile;
-      } else if (days >= 5 && days <= 7) {
+      } else if (days >= 6 && days <= 7) {
         csvUrl = vehicle.fiveToSevenDaysPricingFile;
-      } else if (days >= 8 && days <= 27) {
+      } else if (days >= 8 && days <= 14) {
         csvUrl = vehicle.eightToTwentySevenDaysPricingFile;
-      } else if (days >= 28) {
-        csvUrl = vehicle.twentyEightPlusPricingFile;
-      }
+      } 
+      // else if (days >= 28) {
+      //   csvUrl = vehicle.twentyEightPlusPricingFile;
+      // }
 
       if (!csvUrl) {
         results.push({
@@ -329,7 +441,37 @@ exports.getvehiclePricing = async (req, res) => {
         continue;
       }
 
-      const totalPrice = await calculateTotalVehiclePrice(csvUrl, startDate, endDate);
+      let vehicleType;
+      if (vehicle.passenger === "fourPassenger") {
+        vehicleType = "4 Passenger Gas/Electric";
+      } else if (vehicle.passenger === "sixPassenger") {
+        vehicleType = "6 Passenger Gas/Electric";
+      } else if (vehicle.passenger === "eightPassenger") {
+        vehicleType = "8 Passenger Electric Only";
+      } else {
+        vehicleType = null;
+      }
+
+      if (!vehicleType) {
+        results.push({
+          vehicleId: vehicle._id,
+          vname: vehicle.vname,
+          image: vehicle.image,
+          model: vehicle.model,
+          passenger: vehicle.passenger,
+          tagNumber: vehicle.tagNumber,
+          isAvailable: vehicle.isAvailable,
+          error: 'Unknown passenger type.',
+        });
+        continue;
+      }
+
+      const totalPrice = await calculateTotalVehiclePrice(
+        csvUrl,
+        startDate,
+        endDate,
+        vehicleType
+      );
 
       results.push({
         vehicleId: vehicle._id,
@@ -343,7 +485,7 @@ exports.getvehiclePricing = async (req, res) => {
       });
     }
 
-    res.status(200).json({ message: 'All Vehicle Pricing',results});
+    res.status(200).json({ message: 'All Vehicle Pricing', results });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
