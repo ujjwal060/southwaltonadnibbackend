@@ -75,32 +75,30 @@ pipeline {
             }
         }
 
-stage('Run New Docker Container') {
-    steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'aws-jenkins-creds']]) {
-            sh '''
-                echo "🔐 Fetching secrets from AWS Secrets Manager..."
-                SECRET_JSON=$(aws secretsmanager get-secret-value \
-                  --region ap-south-1 \
-                  --secret-id south-voltana \
-                  --query SecretString \
-                  --output text)
-
-                AWS_ACCESS_KEY_ID=$(echo "$SECRET_JSON" | jq -r '.AWS_ACCESS_KEY_ID')
-                AWS_SECRET_ACCESS_KEY=$(echo "$SECRET_JSON" | jq -r '.AWS_SECRET_ACCESS_KEY')
-
-                echo "🚀 Running container with secrets injected..."
-                docker run -d \
-                  --name $CONTAINER_NAME \
-                  -p $HOST_PORT:$CONTAINER_PORT \
-                  -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-                  -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-                  $IMAGE_NAME:$IMAGE_TAG
-            '''
+        stage('Run New Docker Container') {
+            steps {
+                sh '''
+                    docker run -d \
+                    --name $CONTAINER_NAME \
+                    -p $HOST_PORT:$CONTAINER_PORT \
+                    $IMAGE_NAME:$IMAGE_TAG
+                '''
+            }
         }
-    }
-}
+
+        stage('Run New Docker Container') {
+            steps {
+                sh '''
+                    echo "🚀 Running container with hardcoded keys..."
+                    docker run -d \
+                    --name $CONTAINER_NAME \
+                    -p $HOST_PORT:$CONTAINER_PORT \
+                    -e AWS_ACCESS_KEY_ID=your-access-key \
+                    -e AWS_SECRET_ACCESS_KEY=your-secret-key \
+                    $IMAGE_NAME:$IMAGE_TAG
+                '''
+            }
+        }
 
     }
 
