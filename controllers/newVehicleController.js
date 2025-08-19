@@ -51,12 +51,10 @@ exports.createVehicle = async (req, res) => {
         fileUpdates
       );
       await existingVehicle.save();
-      return res
-        .status(200)
-        .json({
-          message: "Vehicle updated successfully.",
-          vehicle: existingVehicle,
-        });
+      return res.status(200).json({
+        message: "Vehicle updated successfully.",
+        vehicle: existingVehicle,
+      });
     }
 
     const latestVehicle = await NewVehicle.findOne()
@@ -389,15 +387,19 @@ const calculateTotalVehiclePrice = async (
   // });
 
   csvData.forEach((row) => {
-  const fullDate = row["Date"]?.trim() || row["2-5 daily rate"]?.trim() || row["6-7 daily rate"]?.trim() || row["8-14 daily rate"]?.trim();
+    const fullDate =
+      row["Date"]?.trim() ||
+      row["2-5 daily rate"]?.trim() ||
+      row["6-7 daily rate"]?.trim() ||
+      row["8-14 daily rate"]?.trim();
 
-  const price = parseFloat(row[vehicleType]?.trim());
+    const price = parseFloat(row[vehicleType]?.trim());
 
-  if (fullDate && !isNaN(price)) {
-    const formattedDate = new Date(fullDate).toISOString().split("T")[0];
-    pricingMap[formattedDate] = price;
-  }
-});
+    if (fullDate && !isNaN(price)) {
+      const formattedDate = new Date(fullDate).toISOString().split("T")[0];
+      pricingMap[formattedDate] = price;
+    }
+  });
 
   let currentDate = new Date(startDate);
   let totalPrice = 0;
@@ -441,14 +443,17 @@ exports.getvehiclePricing = async (req, res) => {
 
     const vehicles = await NewVehicle.find({
       model,
-      passenger
+      passenger,
     });
+
+    const suggestionVehicles = await NewVehicle.find({});
+    const results = [];
+    const suggestions = [];
 
     if (vehicles.length === 0) {
       return res.status(404).json({ error: "No vehicles found." });
     }
 
-    const results = [];
     for (const vehicle of vehicles) {
       let csvUrl;
 
@@ -534,7 +539,51 @@ exports.getvehiclePricing = async (req, res) => {
       });
     }
 
-    res.status(200).json({ message: "All Vehicle Pricing", results });
+    for (const vehicle of suggestionVehicles) {
+      let csvUrl;
+
+      if (days == 1) {
+        csvUrl = vehicle.dailyPricingFile;
+      } else if (days >= 2 && days <= 5) {
+        csvUrl = vehicle.twoToFourDaysPricingFile;
+      } else if (days >= 6 && days <= 7) {
+        csvUrl = vehicle.fiveToSevenDaysPricingFile;
+      } else if (days >= 8 && days <= 14) {
+        csvUrl = vehicle.eightToTwentySevenDaysPricingFile;
+      }
+
+      let vehicleType;
+      if (vehicle.passenger === "fourPassenger") {
+        vehicleType = "4p gas/electric";
+      } else if (vehicle.passenger === "sixPassenger") {
+        vehicleType = "6p gas/electric";
+      } else if (vehicle.passenger === "eightPassenger") {
+        vehicleType = "8p electric only";
+      }
+
+      const totalPrice =
+        csvUrl && vehicleType
+          ? await calculateTotalVehiclePrice(
+              csvUrl,
+              startDate,
+              endDate,
+              vehicleType
+            )
+          : 0;
+
+      suggestions.push({
+        vehicleId: vehicle._id,
+        vname: vehicle.vname,
+        image: vehicle.image,
+        model: vehicle.model,
+        passenger: vehicle.passenger,
+        tagNumber: vehicle.tagNumber,
+        isAvailable: vehicle.isAvailable,
+        totalPrice: `$${totalPrice.toFixed(2)}`,
+      });
+    }
+
+    res.status(200).json({ message: "All Vehicle Pricing", results,suggestions });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
