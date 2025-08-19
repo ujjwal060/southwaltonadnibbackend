@@ -392,7 +392,7 @@ exports.getvehiclePricing = async (req, res) => {
 
     res
       .status(200)
-      .json({ message: "All Vehicle Pricing", results, suggestions });
+      .json({ message: "All Vehicle Pricing", results });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
