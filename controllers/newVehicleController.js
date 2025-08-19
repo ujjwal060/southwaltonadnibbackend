@@ -242,7 +242,6 @@ exports.getVehicleById = async (req, res, next) => {
 };
 
 // csv pricing
-
 const parseCSV = async (csvUrl) => {
   const data = [];
   const response = await axios.get(csvUrl, { responseType: "stream" });
@@ -260,112 +259,6 @@ const parseCSV = async (csvUrl) => {
       });
   });
 };
-
-// const calculateTotalVehiclePrice = async (csvUrl, startDate, endDate) => {
-//   const csvData = await parseCSV(csvUrl);
-//   const pricingMap = {};
-//   csvData.forEach((row) => {
-//     const fullDate = row['Date']?.trim(); // Example: "1/2/2025"
-//     const price = parseFloat(row['One Day Rental Price']?.trim());
-
-//     if (fullDate && !isNaN(price)) {
-//       pricingMap[fullDate] = price;
-//     }
-//   });
-
-//   let currentDate = new Date(startDate);
-//   let totalPrice = 0;
-
-//   while (currentDate <= endDate) {
-//     const formattedDate = `${currentDate.getMonth() + 1}/${currentDate.getDate()}/${currentDate.getFullYear()}`;
-
-//     if (pricingMap[formattedDate]) {
-//       totalPrice += pricingMap[formattedDate];
-//     }
-
-//     currentDate.setDate(currentDate.getDate() + 1);
-//   }
-
-//   return totalPrice;
-// };
-// exports.getvehiclePricing = async (req, res) => {
-//   try {
-//     const { days, pickdate, dropdate } = req.query;
-
-//     if (!days || !pickdate || !dropdate) {
-//       return res.status(400).json({
-//         error: 'Please provide days, pickdate, and dropdate.',
-//       });
-//     }
-
-//     const startDate = new Date(pickdate);
-//     const endDate = new Date(dropdate);
-
-//     const dayDifference = Math.ceil(
-//       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-//     );
-//     if (dayDifference + 1 !== parseInt(days, 10)) {
-//       return res.status(400).json({
-//         error:
-//           'Number of days does not match the range between pickdate and dropdate.',
-//       });
-//     }
-
-//     const vehicles = await NewVehicle.find();
-
-//     if (vehicles.length === 0) {
-//       return res.status(404).json({ error: 'No vehicles found.' });
-//     }
-
-//     const results = [];
-//     for (const vehicle of vehicles) {
-//       let csvUrl;
-
-//       if (days == 1) {
-//         csvUrl = vehicle.dailyPricingFile;
-//       } else if (days >= 2 && days <= 4) {
-//         csvUrl = vehicle.twoToFourDaysPricingFile;
-//       } else if (days >= 5 && days <= 7) {
-//         csvUrl = vehicle.fiveToSevenDaysPricingFile;
-//       } else if (days >= 8 && days <= 27) {
-//         csvUrl = vehicle.eightToTwentySevenDaysPricingFile;
-//       } else if (days >= 28) {
-//         csvUrl = vehicle.twentyEightPlusPricingFile;
-//       }
-
-//       if (!csvUrl) {
-//         results.push({
-//           vehicleId: vehicle._id,
-//           vname: vehicle.vname,
-//           image: vehicle.image,
-//           model: vehicle.model,
-//           passenger: vehicle.passenger,
-//           tagNumber: vehicle.tagNumber,
-//           isAvailable: vehicle.isAvailable,
-//           error: 'Pricing file not found for the specified number of days.',
-//         });
-//         continue;
-//       }
-
-//       const totalPrice = await calculateTotalVehiclePrice(csvUrl, startDate, endDate);
-
-//       results.push({
-//         vehicleId: vehicle._id,
-//         vname: vehicle.vname,
-//         image: vehicle.image,
-//         model: vehicle.model,
-//         passenger: vehicle.passenger,
-//         tagNumber: vehicle.tagNumber,
-//         isAvailable: vehicle.isAvailable,
-//         totalPrice: `$${totalPrice.toFixed(2)}`,
-//       });
-//     }
-
-//     res.status(200).json({ message: 'All Vehicle Pricing',results});
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 
 const calculateTotalVehiclePrice = async (
   csvUrl,
@@ -417,6 +310,45 @@ const calculateTotalVehiclePrice = async (
   return totalPrice;
 };
 
+const buildVehicleData = async (vehicle, startDate, endDate, days) => {
+  let csvUrl;
+
+  if (days == 1) {
+    csvUrl = vehicle.dailyPricingFile;
+  } else if (days >= 2 && days <= 5) {
+    csvUrl = vehicle.twoToFourDaysPricingFile;
+  } else if (days >= 6 && days <= 7) {
+    csvUrl = vehicle.fiveToSevenDaysPricingFile;
+  } else if (days >= 8 && days <= 14) {
+    csvUrl = vehicle.eightToTwentySevenDaysPricingFile;
+  }
+
+  let vehicleType;
+  if (vehicle.passenger === "fourPassenger") {
+    vehicleType = "4p gas/electric";
+  } else if (vehicle.passenger === "sixPassenger") {
+    vehicleType = "6p gas/electric";
+  } else if (vehicle.passenger === "eightPassenger") {
+    vehicleType = "8p electric only";
+  }
+
+  const totalPrice =
+    csvUrl && vehicleType
+      ? await calculateTotalVehiclePrice(csvUrl, startDate, endDate, vehicleType)
+      : 0;
+
+  return {
+    vehicleId: vehicle._id,
+    vname: vehicle.vname,
+    image: vehicle.image,
+    model: vehicle.model,
+    passenger: vehicle.passenger,
+    tagNumber: vehicle.tagNumber,
+    isAvailable: vehicle.isAvailable,
+    totalPrice: `$${totalPrice.toFixed(2)}`
+  };
+};
+
 exports.getvehiclePricing = async (req, res) => {
   try {
     const { days, pickdate, dropdate, model, passenger } = req.query;
@@ -441,149 +373,26 @@ exports.getvehiclePricing = async (req, res) => {
       });
     }
 
-    const vehicles = await NewVehicle.find({
-      model,
-      passenger,
-    });
-
+    const vehicles = await NewVehicle.find({ model, passenger });
     const suggestionVehicles = await NewVehicle.find({});
-    const results = [];
-    const suggestions = [];
 
     if (vehicles.length === 0) {
       return res.status(404).json({ error: "No vehicles found." });
     }
 
-    for (const vehicle of vehicles) {
-      let csvUrl;
+    const results = await Promise.all(
+      vehicles.map((v) => buildVehicleData(v, startDate, endDate, days))
+    );
 
-      if (days == 1) {
-        csvUrl = vehicle.dailyPricingFile;
-      } else if (days >= 2 && days <= 5) {
-        csvUrl = vehicle.twoToFourDaysPricingFile;
-      } else if (days >= 6 && days <= 7) {
-        csvUrl = vehicle.fiveToSevenDaysPricingFile;
-      } else if (days >= 8 && days <= 14) {
-        csvUrl = vehicle.eightToTwentySevenDaysPricingFile;
-      }
-      // else if (days >= 28) {
-      //   csvUrl = vehicle.twentyEightPlusPricingFile;
-      // }
+    const suggestions = await Promise.all(
+      suggestionVehicles.map((v) =>
+        buildVehicleData(v, startDate, endDate, days)
+      )
+    );
 
-      if (!csvUrl) {
-        results.push({
-          vehicleId: vehicle._id,
-          vname: vehicle.vname,
-          image: vehicle.image,
-          model: vehicle.model,
-          passenger: vehicle.passenger,
-          tagNumber: vehicle.tagNumber,
-          isAvailable: vehicle.isAvailable,
-          error: "Pricing file not found for the specified number of days.",
-        });
-        continue;
-      }
-
-      // let vehicleType;
-      // if (vehicle.passenger === "fourPassenger") {
-      //   vehicleType = "4 Passenger Gas/Electric";
-      // } else if (vehicle.passenger === "sixPassenger") {
-      //   vehicleType = "6 Passenger Gas/Electric";
-      // } else if (vehicle.passenger === "eightPassenger") {
-      //   vehicleType = "8 Passenger Electric Only";
-      // } else {
-      //   vehicleType = null;
-      // }
-
-      let vehicleType;
-      if (vehicle.passenger === "fourPassenger") {
-        vehicleType = "4p gas/electric";
-      } else if (vehicle.passenger === "sixPassenger") {
-        vehicleType = "6p gas/electric";
-      } else if (vehicle.passenger === "eightPassenger") {
-        vehicleType = "8p electric only";
-      } else {
-        vehicleType = null;
-      }
-
-      if (!vehicleType) {
-        results.push({
-          vehicleId: vehicle._id,
-          vname: vehicle.vname,
-          image: vehicle.image,
-          model: vehicle.model,
-          passenger: vehicle.passenger,
-          tagNumber: vehicle.tagNumber,
-          isAvailable: vehicle.isAvailable,
-          error: "Unknown passenger type.",
-        });
-        continue;
-      }
-
-      const totalPrice = await calculateTotalVehiclePrice(
-        csvUrl,
-        startDate,
-        endDate,
-        vehicleType
-      );
-
-      results.push({
-        vehicleId: vehicle._id,
-        vname: vehicle.vname,
-        image: vehicle.image,
-        model: vehicle.model,
-        passenger: vehicle.passenger,
-        tagNumber: vehicle.tagNumber,
-        isAvailable: vehicle.isAvailable,
-        totalPrice: `$${totalPrice.toFixed(2)}`,
-      });
-    }
-
-    for (const vehicle of suggestionVehicles) {
-      let csvUrl;
-
-      if (days == 1) {
-        csvUrl = vehicle.dailyPricingFile;
-      } else if (days >= 2 && days <= 5) {
-        csvUrl = vehicle.twoToFourDaysPricingFile;
-      } else if (days >= 6 && days <= 7) {
-        csvUrl = vehicle.fiveToSevenDaysPricingFile;
-      } else if (days >= 8 && days <= 14) {
-        csvUrl = vehicle.eightToTwentySevenDaysPricingFile;
-      }
-
-      let vehicleType;
-      if (vehicle.passenger === "fourPassenger") {
-        vehicleType = "4p gas/electric";
-      } else if (vehicle.passenger === "sixPassenger") {
-        vehicleType = "6p gas/electric";
-      } else if (vehicle.passenger === "eightPassenger") {
-        vehicleType = "8p electric only";
-      }
-
-      const totalPrice =
-        csvUrl && vehicleType
-          ? await calculateTotalVehiclePrice(
-              csvUrl,
-              startDate,
-              endDate,
-              vehicleType
-            )
-          : 0;
-
-      suggestions.push({
-        vehicleId: vehicle._id,
-        vname: vehicle.vname,
-        image: vehicle.image,
-        model: vehicle.model,
-        passenger: vehicle.passenger,
-        tagNumber: vehicle.tagNumber,
-        isAvailable: vehicle.isAvailable,
-        totalPrice: `$${totalPrice.toFixed(2)}`,
-      });
-    }
-
-    res.status(200).json({ message: "All Vehicle Pricing", results,suggestions });
+    res
+      .status(200)
+      .json({ message: "All Vehicle Pricing", results, suggestions });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
