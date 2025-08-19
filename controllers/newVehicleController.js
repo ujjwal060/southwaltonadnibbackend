@@ -398,96 +398,135 @@ exports.getvehiclePricing = async (req, res) => {
   }
 };
 
+// exports.getVehicleWithPriceById = async (req, res) => {
+//   try {
+//     const { vehicleId } = req.params;
+//     const { pickdate, dropdate } = req.query;
+
+//     // Validate input
+//     if (!vehicleId) {
+//       return res.status(400).json({
+//         error: "Please provide a vehicleId.",
+//       });
+//     }
+//     if (!pickdate || !dropdate) {
+//       return res.status(400).json({
+//         error: "Please provide pickdate and dropdate.",
+//       });
+//     }
+
+//     // Convert date inputs into proper Date objects
+//     const startDate = new Date(pickdate);
+//     const endDate = new Date(dropdate);
+
+//     // Ensure pickdate is not after dropdate
+//     if (startDate > endDate) {
+//       return res.status(400).json({
+//         error: "Pickdate must be on or before dropdate.",
+//       });
+//     }
+
+//     // Calculate the number of days (inclusive)
+//     const days =
+//       Math.ceil(
+//         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+//       ) + 1;
+
+//     // Fetch the vehicle by ID
+//     const vehicle = await NewVehicle.findById(vehicleId);
+
+//     if (!vehicle) {
+//       return res.status(404).json({
+//         error: "Vehicle not found.",
+//       });
+//     }
+
+//     // Determine the appropriate pricing file based on days
+//     let csvUrl;
+//     if (days === 1) {
+//       csvUrl = vehicle.dailyPricingFile;
+//     } else if (days >= 2 && days <= 4) {
+//       csvUrl = vehicle.twoToFourDaysPricingFile;
+//     } else if (days >= 5 && days <= 7) {
+//       csvUrl = vehicle.fiveToSevenDaysPricingFile;
+//     } else if (days >= 8 && days <= 27) {
+//       csvUrl = vehicle.eightToTwentySevenDaysPricingFile;
+//     } else if (days >= 28) {
+//       csvUrl = vehicle.twentyEightPlusPricingFile;
+//     }
+
+//     // Validate pricing file
+//     if (!csvUrl) {
+//       return res.status(400).json({
+//         error: "No pricing file available for the specified duration.",
+//       });
+//     }
+
+//     // Calculate total price
+//     const totalPrice = await calculateTotalVehiclePrice(
+//       csvUrl,
+//       startDate,
+//       endDate
+//     );
+
+//     // Prepare response
+//     const response = {
+//       vehicleId: vehicle._id,
+//       vname: vehicle.vname,
+//       image: vehicle.image,
+//       model: vehicle.model,
+//       passenger: vehicle.passenger,
+//       tagNumber: vehicle.tagNumber,
+//       isAvailable: vehicle.isAvailable,
+//       totalPrice: `$${totalPrice.toFixed(2)}`,
+//     };
+
+//     // Send response
+//     res.status(200).json({
+//       message: "Vehicle details with pricing fetched successfully.",
+//       data: response,
+//     });
+//   } catch (err) {
+//     console.error(err); // Debug log the error
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
 exports.getVehicleWithPriceById = async (req, res) => {
   try {
     const { vehicleId } = req.params;
     const { pickdate, dropdate } = req.query;
 
-    // Validate input
     if (!vehicleId) {
-      return res.status(400).json({
-        error: "Please provide a vehicleId.",
-      });
+      return res.status(400).json({ error: "Please provide a vehicleId." });
     }
     if (!pickdate || !dropdate) {
-      return res.status(400).json({
-        error: "Please provide pickdate and dropdate.",
-      });
+      return res.status(400).json({ error: "Please provide pickdate and dropdate." });
     }
 
-    // Convert date inputs into proper Date objects
     const startDate = new Date(pickdate);
     const endDate = new Date(dropdate);
 
-    // Ensure pickdate is not after dropdate
     if (startDate > endDate) {
-      return res.status(400).json({
-        error: "Pickdate must be on or before dropdate.",
-      });
+      return res.status(400).json({ error: "Pickdate must be on or before dropdate." });
     }
 
-    // Calculate the number of days (inclusive)
     const days =
-      Math.ceil(
-        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-      ) + 1;
+      Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    // Fetch the vehicle by ID
     const vehicle = await NewVehicle.findById(vehicleId);
-
     if (!vehicle) {
-      return res.status(404).json({
-        error: "Vehicle not found.",
-      });
+      return res.status(404).json({ error: "Vehicle not found." });
     }
 
-    // Determine the appropriate pricing file based on days
-    let csvUrl;
-    if (days === 1) {
-      csvUrl = vehicle.dailyPricingFile;
-    } else if (days >= 2 && days <= 4) {
-      csvUrl = vehicle.twoToFourDaysPricingFile;
-    } else if (days >= 5 && days <= 7) {
-      csvUrl = vehicle.fiveToSevenDaysPricingFile;
-    } else if (days >= 8 && days <= 27) {
-      csvUrl = vehicle.eightToTwentySevenDaysPricingFile;
-    } else if (days >= 28) {
-      csvUrl = vehicle.twentyEightPlusPricingFile;
-    }
+    const response = await buildVehicleData(vehicle, startDate, endDate, days);
 
-    // Validate pricing file
-    if (!csvUrl) {
-      return res.status(400).json({
-        error: "No pricing file available for the specified duration.",
-      });
-    }
-
-    // Calculate total price
-    const totalPrice = await calculateTotalVehiclePrice(
-      csvUrl,
-      startDate,
-      endDate
-    );
-
-    // Prepare response
-    const response = {
-      vehicleId: vehicle._id,
-      vname: vehicle.vname,
-      image: vehicle.image,
-      model: vehicle.model,
-      passenger: vehicle.passenger,
-      tagNumber: vehicle.tagNumber,
-      isAvailable: vehicle.isAvailable,
-      totalPrice: `$${totalPrice.toFixed(2)}`,
-    };
-
-    // Send response
     res.status(200).json({
       message: "Vehicle details with pricing fetched successfully.",
       data: response,
     });
   } catch (err) {
-    console.error(err); // Debug log the error
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
