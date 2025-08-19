@@ -1,10 +1,10 @@
 const NewVehicle = require("../models/newVehicleModel");
 
-const mongoose = require('mongoose');
-const axios = require('axios');
-const csvParser = require('csv-parser');
+const mongoose = require("mongoose");
+const axios = require("axios");
+const csvParser = require("csv-parser");
 
-// Create 
+// Create
 exports.createVehicle = async (req, res) => {
   const { vname, passenger, tagNumber, isAvailable, model } = req.body;
 
@@ -20,16 +20,20 @@ exports.createVehicle = async (req, res) => {
         fileUpdates.dailyPricingFile = req.fileLocations.dailyPricingFile;
       }
       if (req.fileLocations.twoToFourDaysPricingFile) {
-        fileUpdates.twoToFourDaysPricingFile = req.fileLocations.twoToFourDaysPricingFile;
+        fileUpdates.twoToFourDaysPricingFile =
+          req.fileLocations.twoToFourDaysPricingFile;
       }
       if (req.fileLocations.fiveToSevenDaysPricingFile) {
-        fileUpdates.fiveToSevenDaysPricingFile = req.fileLocations.fiveToSevenDaysPricingFile;
+        fileUpdates.fiveToSevenDaysPricingFile =
+          req.fileLocations.fiveToSevenDaysPricingFile;
       }
       if (req.fileLocations.eightToTwentySevenDaysPricingFile) {
-        fileUpdates.eightToTwentySevenDaysPricingFile = req.fileLocations.eightToTwentySevenDaysPricingFile;
+        fileUpdates.eightToTwentySevenDaysPricingFile =
+          req.fileLocations.eightToTwentySevenDaysPricingFile;
       }
       if (req.fileLocations.twentyEightPlusPricingFile) {
-        fileUpdates.twentyEightPlusPricingFile = req.fileLocations.twentyEightPlusPricingFile;
+        fileUpdates.twentyEightPlusPricingFile =
+          req.fileLocations.twentyEightPlusPricingFile;
       }
       if (req.fileLocations.image) {
         fileUpdates.image = req.fileLocations.image;
@@ -41,15 +45,27 @@ exports.createVehicle = async (req, res) => {
 
     if (existingVehicle) {
       // Update the existing entry
-      Object.assign(existingVehicle, { passenger, tagNumber, isAvailable }, fileUpdates);
+      Object.assign(
+        existingVehicle,
+        { passenger, tagNumber, isAvailable },
+        fileUpdates
+      );
       await existingVehicle.save();
-      return res.status(200).json({ message: 'Vehicle updated successfully.', vehicle: existingVehicle });
+      return res
+        .status(200)
+        .json({
+          message: "Vehicle updated successfully.",
+          vehicle: existingVehicle,
+        });
     }
 
-    const latestVehicle = await NewVehicle.findOne().sort({ createdAt: -1 }).select('vehicleID');
-    const newIdNumber = latestVehicle && latestVehicle.vehicleID
-      ? parseInt(latestVehicle.vehicleID.split('-')[1]) + 1
-      : 1000000000;
+    const latestVehicle = await NewVehicle.findOne()
+      .sort({ createdAt: -1 })
+      .select("vehicleID");
+    const newIdNumber =
+      latestVehicle && latestVehicle.vehicleID
+        ? parseInt(latestVehicle.vehicleID.split("-")[1]) + 1
+        : 1000000000;
     const vehicleID = `VEH-${newIdNumber}`;
 
     // Create a new vehicle entry if one doesn't exist
@@ -66,7 +82,7 @@ exports.createVehicle = async (req, res) => {
     const newVehicle = await vehicleEntry.save();
 
     res.status(201).json({
-      message: 'Vehicle created successfully.',
+      message: "Vehicle created successfully.",
       vehicle: {
         id: newVehicle._id,
         vehicleID: newVehicle.vehicleID,
@@ -83,14 +99,13 @@ exports.createVehicle = async (req, res) => {
   } catch (err) {
     console.error("Error creating vehicle:", err);
     if (err.code === 11000 && err.keyPattern && err.keyPattern.tagNumber) {
-      return res.status(400).json({ message: 'Tag number must be unique' });
+      return res.status(400).json({ message: "Tag number must be unique" });
     }
     res.status(500).json({ message: err.message });
   }
 };
 
-
-// Update 
+// Update
 exports.updateVehicle = async (req, res) => {
   const { vname, passenger, tagNumber, isAvailable, model } = req.body;
   const updateData = { vname, passenger, tagNumber, model };
@@ -107,16 +122,20 @@ exports.updateVehicle = async (req, res) => {
         updateData.dailyPricingFile = req.fileLocations.dailyPricingFile;
       }
       if (req.fileLocations.twoToFourDaysPricingFile) {
-        updateData.twoToFourDaysPricingFile = req.fileLocations.twoToFourDaysPricingFile;
+        updateData.twoToFourDaysPricingFile =
+          req.fileLocations.twoToFourDaysPricingFile;
       }
       if (req.fileLocations.fiveToSevenDaysPricingFile) {
-        updateData.fiveToSevenDaysPricingFile = req.fileLocations.fiveToSevenDaysPricingFile;
+        updateData.fiveToSevenDaysPricingFile =
+          req.fileLocations.fiveToSevenDaysPricingFile;
       }
       if (req.fileLocations.eightToTwentySevenDaysPricingFile) {
-        updateData.eightToTwentySevenDaysPricingFile = req.fileLocations.eightToTwentySevenDaysPricingFile;
+        updateData.eightToTwentySevenDaysPricingFile =
+          req.fileLocations.eightToTwentySevenDaysPricingFile;
       }
       if (req.fileLocations.twentyEightPlusPricingFile) {
-        updateData.twentyEightPlusPricingFile = req.fileLocations.twentyEightPlusPricingFile;
+        updateData.twentyEightPlusPricingFile =
+          req.fileLocations.twentyEightPlusPricingFile;
       }
       if (req.fileLocations.image) {
         updateData.image = req.fileLocations.image;
@@ -129,13 +148,17 @@ exports.updateVehicle = async (req, res) => {
       updateData.isAvailable = isAvailable;
     }
 
-    const updatedVehicle = await NewVehicle.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const updatedVehicle = await NewVehicle.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
     if (!updatedVehicle) {
       return res.status(404).json({ message: "Vehicle not found" });
     }
 
     res.json({
-      message: 'Vehicle updated successfully.',
+      message: "Vehicle updated successfully.",
       vehicle: updatedVehicle,
     });
   } catch (err) {
@@ -143,7 +166,6 @@ exports.updateVehicle = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
-
 
 // getAll
 exports.getVehicles = async (req, res) => {
@@ -153,11 +175,11 @@ exports.getVehicles = async (req, res) => {
     const searchQuery = search
       ? {
           $or: [
-            { vname: { $regex: search, $options: "i" } }, 
-            { tagNumber: { $regex: search, $options: "i" } }
-          ]
+            { vname: { $regex: search, $options: "i" } },
+            { tagNumber: { $regex: search, $options: "i" } },
+          ],
         }
-      : {}; 
+      : {};
 
     const vehicles = await NewVehicle.find(searchQuery)
       .sort({ createdAt: -1 })
@@ -172,7 +194,8 @@ exports.getVehicles = async (req, res) => {
       dailyPricingFile: vehicle.dailyPricingFile || null,
       twoToFourDaysPricingFile: vehicle.twoToFourDaysPricingFile || null,
       fiveToSevenDaysPricingFile: vehicle.fiveToSevenDaysPricingFile || null,
-      eightToTwentySevenDaysPricingFile: vehicle.eightToTwentySevenDaysPricingFile || null,
+      eightToTwentySevenDaysPricingFile:
+        vehicle.eightToTwentySevenDaysPricingFile || null,
       twentyEightPlusPricingFile: vehicle.twentyEightPlusPricingFile || null,
     }));
 
@@ -188,9 +211,7 @@ exports.getVehicles = async (req, res) => {
   }
 };
 
-
-
-// Delete 
+// Delete
 exports.deleteVehicle = async (req, res) => {
   try {
     const vehicle = await NewVehicle.findById(req.params.id);
@@ -222,22 +243,21 @@ exports.getVehicleById = async (req, res, next) => {
   }
 };
 
-
 // csv pricing
 
 const parseCSV = async (csvUrl) => {
   const data = [];
-  const response = await axios.get(csvUrl, { responseType: 'stream' });
- return new Promise((resolve, reject) => {
+  const response = await axios.get(csvUrl, { responseType: "stream" });
+  return new Promise((resolve, reject) => {
     response.data
       .pipe(csvParser())
-      .on('data', (row) => {
+      .on("data", (row) => {
         data.push(row);
       })
-      .on('end', () => {
+      .on("end", () => {
         resolve(data);
       })
-      .on('error', (err) => {
+      .on("error", (err) => {
         reject(err);
       });
   });
@@ -260,7 +280,7 @@ const parseCSV = async (csvUrl) => {
 
 //   while (currentDate <= endDate) {
 //     const formattedDate = `${currentDate.getMonth() + 1}/${currentDate.getDate()}/${currentDate.getFullYear()}`;
-    
+
 //     if (pricingMap[formattedDate]) {
 //       totalPrice += pricingMap[formattedDate];
 //     }
@@ -349,20 +369,35 @@ const parseCSV = async (csvUrl) => {
 //   }
 // };
 
-
-const calculateTotalVehiclePrice = async (csvUrl, startDate, endDate, vehicleType) => {
+const calculateTotalVehiclePrice = async (
+  csvUrl,
+  startDate,
+  endDate,
+  vehicleType
+) => {
   const csvData = await parseCSV(csvUrl);
   const pricingMap = {};
 
-  csvData.forEach((row) => {
-    const fullDate = row['Date']?.trim();
-    const price = parseFloat(row[vehicleType]?.trim());
+  // csvData.forEach((row) => {
+  //   const fullDate = row["Date"]?.trim();
+  //   const price = parseFloat(row[vehicleType]?.trim());
 
-    if (fullDate && !isNaN(price)) {
-      const formattedDate = new Date(fullDate).toISOString().split("T")[0];
-      pricingMap[formattedDate] = price;
-    }
-  });
+  //   if (fullDate && !isNaN(price)) {
+  //     const formattedDate = new Date(fullDate).toISOString().split("T")[0];
+  //     pricingMap[formattedDate] = price;
+  //   }
+  // });
+
+  csvData.forEach((row) => {
+  const fullDate = row["Date"]?.trim() || row["2-5 daily rate"]?.trim() || row["6-7 daily rate"]?.trim() || row["8-14 daily rate"]?.trim();
+
+  const price = parseFloat(row[vehicleType]?.trim());
+
+  if (fullDate && !isNaN(price)) {
+    const formattedDate = new Date(fullDate).toISOString().split("T")[0];
+    pricingMap[formattedDate] = price;
+  }
+});
 
   let currentDate = new Date(startDate);
   let totalPrice = 0;
@@ -380,14 +415,13 @@ const calculateTotalVehiclePrice = async (csvUrl, startDate, endDate, vehicleTyp
   return totalPrice;
 };
 
-
 exports.getvehiclePricing = async (req, res) => {
   try {
     const { days, pickdate, dropdate } = req.query;
 
     if (!days || !pickdate || !dropdate) {
       return res.status(400).json({
-        error: 'Please provide days, pickdate, and dropdate.',
+        error: "Please provide days, pickdate, and dropdate.",
       });
     }
 
@@ -400,14 +434,15 @@ exports.getvehiclePricing = async (req, res) => {
 
     if (dayDifference + 1 !== parseInt(days, 10)) {
       return res.status(400).json({
-        error: 'Number of days does not match the range between pickdate and dropdate.',
+        error:
+          "Number of days does not match the range between pickdate and dropdate.",
       });
     }
 
     const vehicles = await NewVehicle.find();
 
     if (vehicles.length === 0) {
-      return res.status(404).json({ error: 'No vehicles found.' });
+      return res.status(404).json({ error: "No vehicles found." });
     }
 
     const results = [];
@@ -422,7 +457,7 @@ exports.getvehiclePricing = async (req, res) => {
         csvUrl = vehicle.fiveToSevenDaysPricingFile;
       } else if (days >= 8 && days <= 14) {
         csvUrl = vehicle.eightToTwentySevenDaysPricingFile;
-      } 
+      }
       // else if (days >= 28) {
       //   csvUrl = vehicle.twentyEightPlusPricingFile;
       // }
@@ -436,18 +471,29 @@ exports.getvehiclePricing = async (req, res) => {
           passenger: vehicle.passenger,
           tagNumber: vehicle.tagNumber,
           isAvailable: vehicle.isAvailable,
-          error: 'Pricing file not found for the specified number of days.',
+          error: "Pricing file not found for the specified number of days.",
         });
         continue;
       }
 
+      // let vehicleType;
+      // if (vehicle.passenger === "fourPassenger") {
+      //   vehicleType = "4 Passenger Gas/Electric";
+      // } else if (vehicle.passenger === "sixPassenger") {
+      //   vehicleType = "6 Passenger Gas/Electric";
+      // } else if (vehicle.passenger === "eightPassenger") {
+      //   vehicleType = "8 Passenger Electric Only";
+      // } else {
+      //   vehicleType = null;
+      // }
+
       let vehicleType;
       if (vehicle.passenger === "fourPassenger") {
-        vehicleType = "4 Passenger Gas/Electric";
+        vehicleType = "4p gas/electric";
       } else if (vehicle.passenger === "sixPassenger") {
-        vehicleType = "6 Passenger Gas/Electric";
+        vehicleType = "6p gas/electric";
       } else if (vehicle.passenger === "eightPassenger") {
-        vehicleType = "8 Passenger Electric Only";
+        vehicleType = "8p electric only";
       } else {
         vehicleType = null;
       }
@@ -461,7 +507,7 @@ exports.getvehiclePricing = async (req, res) => {
           passenger: vehicle.passenger,
           tagNumber: vehicle.tagNumber,
           isAvailable: vehicle.isAvailable,
-          error: 'Unknown passenger type.',
+          error: "Unknown passenger type.",
         });
         continue;
       }
@@ -485,12 +531,11 @@ exports.getvehiclePricing = async (req, res) => {
       });
     }
 
-    res.status(200).json({ message: 'All Vehicle Pricing', results });
+    res.status(200).json({ message: "All Vehicle Pricing", results });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 exports.getVehicleWithPriceById = async (req, res) => {
   try {
@@ -521,9 +566,10 @@ exports.getVehicleWithPriceById = async (req, res) => {
     }
 
     // Calculate the number of days (inclusive)
-    const days = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-    ) + 1;
+    const days =
+      Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1;
 
     // Fetch the vehicle by ID
     const vehicle = await NewVehicle.findById(vehicleId);
@@ -556,7 +602,11 @@ exports.getVehicleWithPriceById = async (req, res) => {
     }
 
     // Calculate total price
-    const totalPrice = await calculateTotalVehiclePrice(csvUrl, startDate, endDate);
+    const totalPrice = await calculateTotalVehiclePrice(
+      csvUrl,
+      startDate,
+      endDate
+    );
 
     // Prepare response
     const response = {
